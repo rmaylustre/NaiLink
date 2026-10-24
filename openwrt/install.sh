@@ -5,6 +5,10 @@ set -eu
 umask 077
 
 REPOSITORY=slobys/NaiLink
+# The installer script is fetched from this repository while the release
+# assets keep coming from $REPOSITORY. Keeping the two apart lets a fork
+# ship installer fixes without mirroring the release binaries.
+INSTALLER_REPOSITORY=${NAILINK_INSTALLER_REPOSITORY:-rmaylustre/NaiLink}
 release=openwrt-v0.6.30
 asset_dir=''
 mode=install
@@ -87,14 +91,14 @@ download_https() {
 }
 install_latest() {
 	stage=$(mktemp -d /tmp/daed-install.XXXXXX) || fail 'Cannot create staging directory.'
-	url="https://raw.githubusercontent.com/$REPOSITORY/main/openwrt/install.sh"
+	url="https://raw.githubusercontent.com/$INSTALLER_REPOSITORY/main/openwrt/install.sh"
 	printf '\n正在获取最新安装脚本，现有服务和数据尚未改动…\n'
 	if ! command -v curl >/dev/null 2>&1 && ! command -v uclient-fetch >/dev/null 2>&1; then
 		fail 'Requires curl or uclient-fetch with working HTTPS certificate verification.'
 	fi
 	if ! download_https "$stage/install.sh" "$url" 60; then
 		printf '主下载入口不可用，正在尝试 GitHub 官方 API 备用入口…\n'
-		url="https://api.github.com/repos/$REPOSITORY/contents/openwrt/install.sh?ref=main"
+		url="https://api.github.com/repos/$INSTALLER_REPOSITORY/contents/openwrt/install.sh?ref=main"
 		download_https "$stage/install.sh" "$url" 60 'Accept: application/vnd.github.raw+json' || \
 			fail 'Cannot download the latest installer. 请检查路由器自身的 DNS 和 HTTPS 连接（raw.githubusercontent.com / api.github.com）。Existing service/data were not changed.'
 	fi
